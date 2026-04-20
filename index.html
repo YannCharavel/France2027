@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Sunshine Coast → France · Family Relocation Planner</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🗼</text></svg>" />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,600;9..40,700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;padding:0;background:#FAF9F6}
+#root{width:100%}
+.app-body{display:flex;align-items:flex-start}
+.sidebar{display:none;width:230px;flex-shrink:0;background:#fff;border-right:1px solid #eae7df;padding:10px 8px;position:sticky;top:0;height:calc(100vh - 115px);overflow-y:auto}
+.phase-pills{display:flex;overflow-x:auto;gap:6px;padding:10px 14px;background:#fff;border-bottom:1px solid #eae7df;-webkit-overflow-scrolling:touch}
+.main-col{flex:1;min-width:0}
+.overview-inner{max-width:900px;margin:0 auto;padding:20px}
+.ov-grid-cat{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ov-grid-owner{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media(min-width:768px){
+  .sidebar{display:flex;flex-direction:column}
+  .phase-pills{display:none}
+  .main-col{height:calc(100vh - 115px);overflow-y:auto}
+  .ov-grid-cat{grid-template-columns:repeat(4,1fr)}
+  .ov-grid-owner{grid-template-columns:repeat(4,1fr)}
+}
+</style>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const{useState,useEffect,useCallback,useMemo,useRef}=React;
+const PHASES=[{id:"now",label:"Get Started",subtitle:"Apr – Jun 2026",color:"#6D4C9F",icon:"🔍"},{id:"research",label:"Research & Decide",subtitle:"Jul – Sep 2026",color:"#1565C0",icon:"📋"},{id:"apply",label:"Apply & Book",subtitle:"Oct – Dec 2026",color:"#00838F",icon:"📝"},{id:"prepare",label:"Prepare",subtitle:"Jan – Mar 2027",color:"#E65100",icon:"📦"},{id:"final",label:"Final Countdown",subtitle:"Apr – Jun 2027",color:"#C62828",icon:"⏰"},{id:"move",label:"The Big Move",subtitle:"July 2027",color:"#2E7D32",icon:"✈️"},{id:"settle",label:"Settling In",subtitle:"Aug – Oct 2027",color:"#1565C0",icon:"🏡"},{id:"living",label:"La Vie en France",subtitle:"Nov 2027 – May 2028",color:"#6A1B9A",icon:"🇫🇷"},{id:"return",label:"Homeward Bound",subtitle:"Jun – Jul 2028",color:"#00838F",icon:"🦘"}];
+const CATEGORIES=[{id:"visa",label:"Visas & Paperwork",icon:"📄",color:"#D32F2F"},{id:"housing_au",label:"Aus Home",icon:"🏠",color:"#E64A19"},{id:"housing_fr",label:"France Housing",icon:"🏰",color:"#7B1FA2"},{id:"schools",label:"Schools",icon:"🎒",color:"#1976D2"},{id:"finance",label:"Finance & Insurance",icon:"💰",color:"#388E3C"},{id:"health",label:"Health",icon:"🏥",color:"#00796B"},{id:"shipping",label:"Shipping & Storage",icon:"📦",color:"#5D4037"},{id:"packing",label:"Packing & Clothing",icon:"👗",color:"#C2185B"},{id:"lifestyle",label:"Life Admin",icon:"⚙️",color:"#455A64"},{id:"kids",label:"Kids & Family",icon:"👨‍👩‍👧‍👧",color:"#F57C00"}];
+const OWNERS=[{id:"both",label:"Both",color:"#5C6BC0",bg:"#E8EAF6"},{id:"parent1",label:"Parent 1",color:"#00897B",bg:"#E0F2F1"},{id:"parent2",label:"Parent 2",color:"#F4511E",bg:"#FBE9E7"},{id:"family",label:"Whole Family",color:"#8E24AA",bg:"#F3E5F5"}];
+const PRIORITY_CONFIG={high:{label:"Must Do",color:"#C62828",bg:"#FFEBEE"},medium:{label:"Should Do",color:"#E65100",bg:"#FFF3E0"},low:{label:"Nice to Do",color:"#2E7D32",bg:"#E8F5E9"}};
+const INITIAL_TASKS = [
+  { id: 1, phase: "now", cat: "visa", text: "Research visa type needed (long-stay visa VLS-TS for family)", priority: "high", owner: "both" },
+  { id: 2, phase: "now", cat: "visa", text: "Check passport validity for all 4 family members (6+ months beyond return)", priority: "high", owner: "both" },
+  { id: 3, phase: "now", cat: "visa", text: "Renew any passports expiring before Aug 2028", priority: "high", owner: "both" },
+  { id: 4, phase: "now", cat: "schools", text: "Research French school system (école primaire for 8yo, collège for 12yo)", priority: "high", owner: "parent1" },
+  { id: 5, phase: "now", cat: "schools", text: "Decide: local French school vs bilingual vs international school", priority: "high", owner: "both" },
+  { id: 6, phase: "now", cat: "housing_fr", text: "Decide which region/city in France to live", priority: "high", owner: "both" },
+  { id: 7, phase: "now", cat: "housing_fr", text: "Join expat Facebook groups for your target area", priority: "medium", owner: "parent1" },
+  { id: 8, phase: "now", cat: "housing_au", text: "Decide: rent out, sell, or leave home vacant", priority: "high", owner: "both" },
+  { id: 9, phase: "now", cat: "finance", text: "Create overall relocation budget — flights, shipping, rent, school fees", priority: "high", owner: "both" },
+  { id: 10, phase: "now", cat: "finance", text: "Research international banking options (Wise, Revolut)", priority: "medium", owner: "parent2" },
+  { id: 11, phase: "now", cat: "kids", text: "Start basic French lessons for the girls (Duolingo, apps, YouTube)", priority: "medium", owner: "family" },
+  { id: 12, phase: "now", cat: "kids", text: "Talk to the girls about the adventure — build excitement!", priority: "medium", owner: "family" },
+  { id: 13, phase: "now", cat: "lifestyle", text: "Begin French language study for parents too!", priority: "low", owner: "both" },
+  { id: 14, phase: "now", cat: "health", text: "Book family GP visit — discuss overseas health plan and vaccinations", priority: "medium", owner: "parent1" },
+  { id: 15, phase: "now", cat: "housing_au", text: "Start decluttering — go room by room over coming months", priority: "low", owner: "family" },
+  { id: 20, phase: "research", cat: "housing_fr", text: "Research rental market (Le Bon Coin, SeLoger, PAP)", priority: "high", owner: "both" },
+  { id: 21, phase: "research", cat: "housing_fr", text: "Contact relocation agent if using one", priority: "medium", owner: "parent1" },
+  { id: 22, phase: "research", cat: "housing_fr", text: "Shortlist neighbourhoods near target schools", priority: "high", owner: "both" },
+  { id: 23, phase: "research", cat: "schools", text: "Contact target schools — understand enrolment process and timelines", priority: "high", owner: "parent1" },
+  { id: 24, phase: "research", cat: "schools", text: "Request prospectus / virtual tours from schools", priority: "medium", owner: "parent1" },
+  { id: 25, phase: "research", cat: "schools", text: "Understand school calendar (rentrée in September)", priority: "medium", owner: "parent1" },
+  { id: 26, phase: "research", cat: "housing_au", text: "If renting out: interview property managers, get rental appraisals", priority: "medium", owner: "parent2" },
+  { id: 27, phase: "research", cat: "housing_au", text: "If selling: get market appraisals from local agents", priority: "medium", owner: "parent2" },
+  { id: 28, phase: "research", cat: "finance", text: "Research health insurance for France (CFE, private, or expat cover)", priority: "medium", owner: "parent2" },
+  { id: 29, phase: "research", cat: "finance", text: "Understand tax obligations — ATO non-resident rules, French tax", priority: "medium", owner: "parent2" },
+  { id: 201, phase: "research", cat: "shipping", text: "Research international shipping companies — get initial quotes", priority: "medium", owner: "parent2" },
+  { id: 202, phase: "research", cat: "shipping", text: "Research storage facilities on Sunshine Coast", priority: "medium", owner: "parent2" },
+  { id: 203, phase: "research", cat: "visa", text: "Gather documents: birth certs, marriage cert for visa application", priority: "high", owner: "both" },
+  { id: 204, phase: "research", cat: "health", text: "Get dental and optical checkups for everyone", priority: "medium", owner: "parent1" },
+  { id: 205, phase: "research", cat: "kids", text: "Research kids activities in target French area (sports, music, dance)", priority: "low", owner: "parent1" },
+  { id: 30, phase: "apply", cat: "visa", text: "Get certified translations of all documents (NAATI translator)", priority: "high", owner: "parent1" },
+  { id: 31, phase: "apply", cat: "visa", text: "Arrange Apostille stamps for birth/marriage certificates", priority: "high", owner: "parent1" },
+  { id: 32, phase: "apply", cat: "visa", text: "Book appointment at French consulate (Sydney) for visa application", priority: "high", owner: "both" },
+  { id: 33, phase: "apply", cat: "visa", text: "Get passport photos taken (French format) for all family", priority: "medium", owner: "parent1" },
+  { id: 34, phase: "apply", cat: "schools", text: "Submit formal school enrolment applications", priority: "high", owner: "parent1" },
+  { id: 35, phase: "apply", cat: "schools", text: "Notify current Australian school about planned withdrawal", priority: "medium", owner: "parent1" },
+  { id: 36, phase: "apply", cat: "schools", text: "Request school records and reports for both girls", priority: "medium", owner: "parent1" },
+  { id: 37, phase: "apply", cat: "housing_au", text: "Appoint property manager and sign agreement (if renting out)", priority: "medium", owner: "parent2" },
+  { id: 38, phase: "apply", cat: "housing_au", text: "List house for sale if selling", priority: "medium", owner: "parent2" },
+  { id: 39, phase: "apply", cat: "finance", text: "Set up Wise or Revolut multi-currency account", priority: "medium", owner: "parent2" },
+  { id: 301, phase: "apply", cat: "finance", text: "Review and update wills / powers of attorney", priority: "low", owner: "both" },
+  { id: 302, phase: "apply", cat: "finance", text: "Research travel insurance covering full 12-month stay", priority: "medium", owner: "parent2" },
+  { id: 303, phase: "apply", cat: "housing_au", text: "Arrange any repairs/maintenance before tenants move in", priority: "low", owner: "parent2" },
+  { id: 304, phase: "apply", cat: "lifestyle", text: "Sort belongings: SHIP to France / STORE / SELL / DONATE", priority: "medium", owner: "family" },
+  { id: 305, phase: "apply", cat: "lifestyle", text: "Sell unwanted items on Facebook Marketplace / Gumtree", priority: "low", owner: "both" },
+  { id: 40, phase: "prepare", cat: "visa", text: "Submit visa applications for all family members", priority: "high", owner: "both" },
+  { id: 41, phase: "prepare", cat: "visa", text: "Get international driving permits (post office)", priority: "medium", owner: "both" },
+  { id: 42, phase: "prepare", cat: "housing_fr", text: "Secure rental accommodation in France (sign lease)", priority: "high", owner: "both" },
+  { id: 43, phase: "prepare", cat: "housing_fr", text: "Organise French home insurance (assurance habitation — required by law)", priority: "medium", owner: "parent2" },
+  { id: 44, phase: "prepare", cat: "housing_fr", text: "Set up French utilities contacts (EDF, internet provider)", priority: "low", owner: "parent2" },
+  { id: 45, phase: "prepare", cat: "shipping", text: "Get final quotes and book international shipping (sea freight)", priority: "high", owner: "parent2" },
+  { id: 46, phase: "prepare", cat: "shipping", text: "Book storage unit on Sunshine Coast", priority: "medium", owner: "parent2" },
+  { id: 47, phase: "prepare", cat: "shipping", text: "Start packing non-essential items for storage", priority: "medium", owner: "family" },
+  { id: 48, phase: "prepare", cat: "finance", text: "Notify Australian bank of overseas travel plans", priority: "medium", owner: "parent2" },
+  { id: 49, phase: "prepare", cat: "finance", text: "Confirm travel insurance and purchase policy", priority: "high", owner: "parent2" },
+  { id: 401, phase: "prepare", cat: "health", text: "Get 3-month supply of any regular prescriptions", priority: "medium", owner: "parent1" },
+  { id: 402, phase: "prepare", cat: "health", text: "Request medical summaries and vaccination records for all", priority: "medium", owner: "parent1" },
+  { id: 403, phase: "prepare", cat: "schools", text: "Confirm school enrolment — gather required French documents", priority: "high", owner: "parent1" },
+  { id: 404, phase: "prepare", cat: "kids", text: "Create a France adventure scrapbook with the girls", priority: "low", owner: "family" },
+  { id: 405, phase: "prepare", cat: "housing_au", text: "Arrange building & landlord insurance for rental period", priority: "medium", owner: "parent2" },
+  { id: 406, phase: "prepare", cat: "packing", text: "Research what to pack vs buy in France (winter clothes, school supplies)", priority: "medium", owner: "parent1" },
+  { id: 50, phase: "final", cat: "visa", text: "Collect approved visas — verify all details correct", priority: "high", owner: "both" },
+  { id: 51, phase: "final", cat: "shipping", text: "Pack and label all boxes for sea freight (allow 6-8 weeks transit)", priority: "high", owner: "family" },
+  { id: 52, phase: "final", cat: "shipping", text: "Book sea freight pickup date", priority: "high", owner: "parent2" },
+  { id: 53, phase: "final", cat: "shipping", text: "Move storage items to storage facility", priority: "high", owner: "both" },
+  { id: 54, phase: "final", cat: "packing", text: "Plan suitcase contents — European summer + autumn layers", priority: "high", owner: "parent1" },
+  { id: 55, phase: "final", cat: "packing", text: "Pack winter coats or plan to buy in France", priority: "medium", owner: "parent1" },
+  { id: 56, phase: "final", cat: "packing", text: "Girls: pack comfort items, favourite toys, books, special blankets", priority: "medium", owner: "family" },
+  { id: 57, phase: "final", cat: "packing", text: "Electronics: adaptor plugs (Type E/F for France), check device voltages", priority: "medium", owner: "parent2" },
+  { id: 58, phase: "final", cat: "packing", text: "Important documents folder: passports, visas, lease, medical records, insurance", priority: "high", owner: "parent1" },
+  { id: 59, phase: "final", cat: "housing_au", text: "Deep clean house for tenants or vacancy", priority: "medium", owner: "both" },
+  { id: 501, phase: "final", cat: "housing_au", text: "Take dated photos/video of property condition", priority: "medium", owner: "parent2" },
+  { id: 502, phase: "final", cat: "housing_au", text: "Hand keys to property manager", priority: "medium", owner: "parent2" },
+  { id: 503, phase: "final", cat: "lifestyle", text: "Cancel or pause subscriptions (gym, streaming, etc.)", priority: "medium", owner: "parent2" },
+  { id: 504, phase: "final", cat: "lifestyle", text: "Set up VPN for Australian streaming in France", priority: "low", owner: "parent2" },
+  { id: 505, phase: "final", cat: "lifestyle", text: "Redirect post via Australia Post", priority: "medium", owner: "parent1" },
+  { id: 506, phase: "final", cat: "lifestyle", text: "Set up automatic bill payments for Aus expenses", priority: "medium", owner: "parent2" },
+  { id: 507, phase: "final", cat: "lifestyle", text: "Get French SIM cards or international roaming plan", priority: "medium", owner: "parent2" },
+  { id: 508, phase: "final", cat: "lifestyle", text: "Arrange airport transfers / parking", priority: "medium", owner: "parent2" },
+  { id: 509, phase: "final", cat: "lifestyle", text: "Farewell gatherings with friends and family!", priority: "low", owner: "family" },
+  { id: 510, phase: "final", cat: "kids", text: "Let girls have playdates and say goodbye to school friends", priority: "medium", owner: "family" },
+  { id: 511, phase: "final", cat: "kids", text: "Set up video calling with grandparents/friends", priority: "low", owner: "family" },
+  { id: 512, phase: "final", cat: "lifestyle", text: "Book flights to France!", priority: "high", owner: "both" },
+  { id: 513, phase: "final", cat: "lifestyle", text: "Organise pet care if applicable", priority: "medium", owner: "both" },
+  { id: 60, phase: "move", cat: "lifestyle", text: "Final check: passports, boarding passes, documents in carry-on", priority: "high", owner: "parent1" },
+  { id: 61, phase: "move", cat: "lifestyle", text: "Lock up house, set timers on lights if vacant", priority: "medium", owner: "parent2" },
+  { id: 62, phase: "move", cat: "lifestyle", text: "Fly to France! 🛫", priority: "high", owner: "family" },
+  { id: 63, phase: "move", cat: "housing_fr", text: "Collect keys and do walk-through of French rental", priority: "high", owner: "both" },
+  { id: 64, phase: "move", cat: "housing_fr", text: "Complete état des lieux (entry inspection) with landlord", priority: "high", owner: "both" },
+  { id: 65, phase: "move", cat: "housing_fr", text: "Set up electricity, water, internet", priority: "high", owner: "parent2" },
+  { id: 66, phase: "move", cat: "housing_fr", text: "Buy essentials: bedding, kitchen basics, toiletries", priority: "high", owner: "parent1" },
+  { id: 67, phase: "move", cat: "lifestyle", text: "Get local SIM cards activated", priority: "medium", owner: "parent2" },
+  { id: 68, phase: "move", cat: "lifestyle", text: "Find nearest supermarket, pharmacy, boulangerie 🥖", priority: "medium", owner: "family" },
+  { id: 70, phase: "settle", cat: "visa", text: "Validate visa at OFII (Office Français de l'Immigration) — mandatory", priority: "high", owner: "both" },
+  { id: 71, phase: "settle", cat: "visa", text: "Register at local Mairie (town hall)", priority: "high", owner: "both" },
+  { id: 72, phase: "settle", cat: "finance", text: "Open French bank account (needed for many services)", priority: "high", owner: "both" },
+  { id: 73, phase: "settle", cat: "finance", text: "Apply for CAF (family allowance) if eligible", priority: "medium", owner: "parent2" },
+  { id: 74, phase: "settle", cat: "health", text: "Register with French social security (CPAM) if applicable", priority: "high", owner: "parent1" },
+  { id: 75, phase: "settle", cat: "health", text: "Find and register with a local médecin traitant (GP)", priority: "medium", owner: "parent1" },
+  { id: 76, phase: "settle", cat: "schools", text: "La rentrée! First day of school 🎒", priority: "high", owner: "family" },
+  { id: 77, phase: "settle", cat: "schools", text: "Meet teachers, understand routines (mercredi off in some schools)", priority: "medium", owner: "parent1" },
+  { id: 78, phase: "settle", cat: "schools", text: "Register for cantine (school lunch)", priority: "medium", owner: "parent1" },
+  { id: 79, phase: "settle", cat: "kids", text: "Sign girls up for local activities (sport, music, dance)", priority: "medium", owner: "parent1" },
+  { id: 701, phase: "settle", cat: "kids", text: "Explore the local area as a family — parks, markets, sights", priority: "low", owner: "family" },
+  { id: 702, phase: "settle", cat: "shipping", text: "Receive and unpack sea freight shipment", priority: "medium", owner: "family" },
+  { id: 703, phase: "settle", cat: "packing", text: "Buy winter clothing as needed for the family", priority: "medium", owner: "parent1" },
+  { id: 704, phase: "settle", cat: "lifestyle", text: "Set up weekly routine: school, groceries, activities", priority: "medium", owner: "both" },
+  { id: 705, phase: "settle", cat: "lifestyle", text: "Join local expat community or parents' group", priority: "low", owner: "parent1" },
+  { id: 80, phase: "living", cat: "finance", text: "File Australian tax return (non-resident if applicable)", priority: "medium", owner: "parent2" },
+  { id: 81, phase: "living", cat: "finance", text: "Monitor rental income and expenses for Aus property", priority: "low", owner: "parent2" },
+  { id: 82, phase: "living", cat: "health", text: "Renew prescriptions with French GP as needed", priority: "medium", owner: "parent1" },
+  { id: 83, phase: "living", cat: "schools", text: "Attend parent-teacher meetings (réunions parents-profs)", priority: "medium", owner: "both" },
+  { id: 84, phase: "living", cat: "schools", text: "Monitor girls' adjustment — arrange French tutoring if needed", priority: "medium", owner: "parent1" },
+  { id: 85, phase: "living", cat: "kids", text: "Plan school holiday adventures (Toussaint, Noël, Février, Pâques)", priority: "low", owner: "family" },
+  { id: 86, phase: "living", cat: "kids", text: "Christmas in France — embrace local traditions! 🎄", priority: "low", owner: "family" },
+  { id: 87, phase: "living", cat: "lifestyle", text: "Explore France! Weekend trips and regional discoveries", priority: "low", owner: "family" },
+  { id: 88, phase: "living", cat: "housing_au", text: "Check in on Aus property with property manager", priority: "low", owner: "parent2" },
+  { id: 89, phase: "living", cat: "visa", text: "Check visa renewal requirements if considering extension", priority: "low", owner: "both" },
+  { id: 90, phase: "return", cat: "housing_fr", text: "Give notice to French landlord (1-3 months required)", priority: "high", owner: "parent2" },
+  { id: 91, phase: "return", cat: "housing_fr", text: "Schedule état des lieux de sortie (exit inspection)", priority: "high", owner: "both" },
+  { id: 92, phase: "return", cat: "housing_fr", text: "Cancel French utilities and internet", priority: "medium", owner: "parent2" },
+  { id: 93, phase: "return", cat: "housing_fr", text: "Close or convert French bank account", priority: "medium", owner: "parent2" },
+  { id: 94, phase: "return", cat: "schools", text: "Notify French schools of departure", priority: "medium", owner: "parent1" },
+  { id: 95, phase: "return", cat: "schools", text: "Request school records / bulletins scolaires", priority: "medium", owner: "parent1" },
+  { id: 96, phase: "return", cat: "schools", text: "Re-enrol girls in Australian school for Term 3 2028", priority: "high", owner: "parent1" },
+  { id: 97, phase: "return", cat: "shipping", text: "Pack and arrange return shipping to Australia", priority: "high", owner: "both" },
+  { id: 98, phase: "return", cat: "shipping", text: "Arrange storage unit emptying back in Aus", priority: "medium", owner: "parent2" },
+  { id: 99, phase: "return", cat: "lifestyle", text: "Cancel French phone/SIM contracts", priority: "medium", owner: "parent2" },
+  { id: 901, phase: "return", cat: "lifestyle", text: "Reactivate Australian subscriptions and services", priority: "low", owner: "parent2" },
+  { id: 902, phase: "return", cat: "lifestyle", text: "Redirect French mail back to Australia", priority: "medium", owner: "parent1" },
+  { id: 903, phase: "return", cat: "housing_au", text: "Give tenants notice / prepare home for your return", priority: "high", owner: "parent2" },
+  { id: 904, phase: "return", cat: "health", text: "Get prescriptions to bridge until Aus GP visit", priority: "medium", owner: "parent1" },
+  { id: 905, phase: "return", cat: "finance", text: "Final French tax obligations check", priority: "medium", owner: "parent2" },
+  { id: 906, phase: "return", cat: "kids", text: "Farewell party with new French friends", priority: "low", owner: "family" },
+  { id: 907, phase: "return", cat: "kids", text: "Create memory book / photo album of the year", priority: "low", owner: "family" },
+  { id: 908, phase: "return", cat: "lifestyle", text: "Fly home to Australia! 🦘🇦🇺", priority: "medium", owner: "family" },
+];
+
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const OWNER_MAP=Object.fromEntries(OWNERS.map(o=>[o.id,o]));
+
+/* Firebase */
+let dbRef=null,namesRef=null,customRef=null;
+function initFB(url){try{if(!firebase.apps.length)firebase.initializeApp({databaseURL:url});const db=firebase.database();dbRef=db.ref("relo/tasks");namesRef=db.ref("relo/names");customRef=db.ref("relo/custom");return true}catch(e){return false}}
+function fbWrite(id,d){dbRef&&dbRef.child(String(id)).set(d).catch(()=>{})}
+function fbWriteNames(n){namesRef&&namesRef.set(n).catch(()=>{})}
+function fbWriteCustom(id,d){customRef&&customRef.child(String(id)).set(d).catch(()=>{})}
+function fbDelCustom(id){customRef&&customRef.child(String(id)).remove().catch(()=>{});dbRef&&dbRef.child(String(id)).remove().catch(()=>{})}
+
+function SetupScreen({onConnect}){
+  const[url,setUrl]=useState("");const[err,setErr]=useState("");const[busy,setBusy]=useState(false);
+  const go=()=>{let u=url.trim();if(!u){setErr("Please paste your Firebase database URL");return}if(!u.startsWith("https://"))u="https://"+u;if(!u.includes("firebase")){setErr("URL should contain firebaseio.com or firebasedatabase.app");return}setBusy(true);setErr("");if(initFB(u)){localStorage.setItem("relo-fb-url",u);onConnect(u)}else{setErr("Could not connect")}setBusy(false)};
+  return(
+    <div style={{fontFamily:"'DM Sans',sans-serif",background:"#FAF9F6",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+      <div style={{background:"#fff",borderRadius:16,padding:28,maxWidth:380,width:"100%",boxShadow:"0 2px 20px rgba(0,0,0,0.08)"}}>
+        <div style={{textAlign:"center",marginBottom:20}}>
+          <div style={{fontSize:48,marginBottom:8}}>🗼</div>
+          <h1 style={{fontFamily:"'Instrument Serif',serif",fontSize:22,margin:0,fontStyle:"italic",color:"#1B2A4A"}}>Sunshine Coast → France</h1>
+          <p style={{fontSize:12,color:"#888",margin:"4px 0 0"}}>Family Relocation Planner</p>
+        </div>
+        <div style={{background:"#F0F4FF",borderRadius:10,padding:14,marginBottom:16}}>
+          <p style={{margin:0,fontSize:12,color:"#1B2A4A",lineHeight:1.5}}><strong>One-time setup:</strong> Paste your Firebase database URL below so both you and your wife see the same checklist in real time.</p>
+        </div>
+        <label style={{fontSize:11,fontWeight:600,color:"#888",textTransform:"uppercase",letterSpacing:1}}>Firebase Database URL</label>
+        <input value={url} onChange={e=>setUrl(e.target.value)} onKeyDown={e=>e.key==="Enter"&&go()} placeholder="https://your-project-default-rtdb.firebaseio.com" style={{width:"100%",padding:"10px 12px",border:"1px solid #ddd",borderRadius:8,fontSize:13,marginTop:6,marginBottom:12,boxSizing:"border-box",fontFamily:"'DM Sans',sans-serif"}} />
+        {err&&<p style={{color:"#C62828",fontSize:12,margin:"0 0 10px"}}>{err}</p>}
+        <button onClick={go} disabled={busy} style={{width:"100%",padding:12,background:"#1B2A4A",color:"#fff",border:"none",borderRadius:8,fontSize:14,fontWeight:600,cursor:"pointer"}}>{busy?"Connecting...":"Connect & Start"}</button>
+        <button onClick={()=>onConnect(null)} style={{width:"100%",padding:10,background:"none",border:"1px solid #ddd",borderRadius:8,fontSize:12,cursor:"pointer",marginTop:8,color:"#888"}}>Use offline (no sync)</button>
+      </div>
+    </div>
+  );
+}
+
+function App(){
+  const[fbUrl,setFbUrl]=useState("https://france2027-a7261-default-rtdb.asia-southeast1.firebasedatabase.app/");
+  const[tasks,setTasks]=useState([]);const[loaded,setLoaded]=useState(false);
+  const[activePhase,setActivePhase]=useState("now");const[filterCat,setFilterCat]=useState("all");
+  const[filterOwner,setFilterOwner]=useState("all");const[search,setSearch]=useState("");
+  const[view,setView]=useState("phases");const[expanded,setExpanded]=useState(null);
+  const[showAdd,setShowAdd]=useState(false);const[editNames,setEditNames]=useState(false);
+  const[ownerNames,setOwnerNames]=useState({parent1:"Parent 1",parent2:"Parent 2"});
+  const[showSettings,setShowSettings]=useState(false);
+
+  useEffect(()=>{
+    if(fbUrl===undefined)return;
+    if(fbUrl===null){
+      // offline
+      try{const sn=localStorage.getItem("relo-names");if(sn)setOwnerNames(JSON.parse(sn));
+        const sv=localStorage.getItem("relo-data");if(sv){const p=JSON.parse(sv);const m={};p.forEach(t=>{m[t.id]=t});
+          const merged=INITIAL_TASKS.map(t=>{const s=m[t.id];return s?{...t,done:s.done,notes:s.notes||"",subtasks:s.subtasks||[],owner:s.owner||t.owner}:{...t,done:false,notes:"",subtasks:[]}});
+          const custom=p.filter(t=>typeof t.id==="string");setTasks([...merged,...custom])}
+        else{setTasks(INITIAL_TASKS.map(t=>({...t,done:false,notes:"",subtasks:[]})))}}
+      catch(e){setTasks(INITIAL_TASKS.map(t=>({...t,done:false,notes:"",subtasks:[]})))}
+      setLoaded(true);return;
+    }
+    // Firebase
+    initFB(fbUrl);
+    namesRef.on("value",s=>{const v=s.val();if(v)setOwnerNames(v)},()=>{});
+    let ts={},ct=[],gt=false,gc=false;
+    const merge=()=>{if(!gt)return;
+      const merged=INITIAL_TASKS.map(t=>{const s=ts[t.id];return s?{...t,done:!!s.done,notes:s.notes||"",subtasks:s.subtasks||[],owner:s.owner||t.owner}:{...t,done:false,notes:"",subtasks:[]}});
+      setTasks([...merged,...ct]);setLoaded(true)};
+    const fallback=err=>{ts={};gt=true;merge();if(err)console.warn("Firebase:",err.message)};
+    dbRef.on("value",s=>{ts=s.val()||{};gt=true;merge()},fallback);
+    customRef.on("value",s=>{ct=Object.values(s.val()||{});gc=true},e=>{gc=true});
+    const timer=setTimeout(()=>{if(!gt){fallback(new Error("timeout"))}},6000);
+    return()=>{clearTimeout(timer);dbRef&&dbRef.off();namesRef&&namesRef.off();customRef&&customRef.off()};
+  },[fbUrl]);
+
+  const save=(updated)=>{if(!fbUrl){localStorage.setItem("relo-data",JSON.stringify(updated.map(t=>({id:t.id,done:t.done,notes:t.notes,subtasks:t.subtasks,owner:t.owner,...(typeof t.id==="string"?{phase:t.phase,cat:t.cat,text:t.text,priority:t.priority}:{})}))));} };
+  const syncTask=(task)=>{if(fbUrl)fbWrite(task.id,{done:task.done,notes:task.notes||"",subtasks:task.subtasks||[],owner:task.owner})};
+
+  const toggle=useCallback(id=>{setTasks(p=>{const u=p.map(t=>t.id===id?{...t,done:!t.done}:t);const task=u.find(t=>t.id===id);if(task)syncTask(task);save(u);return u})},[fbUrl]);
+  const setOwnerFn=useCallback((id,ow)=>{setTasks(p=>{const u=p.map(t=>t.id===id?{...t,owner:ow}:t);const task=u.find(t=>t.id===id);if(task){syncTask(task);if(typeof id==="string"&&fbUrl)fbWriteCustom(id,task)}save(u);return u})},[fbUrl]);
+  const setNote=useCallback((id,n)=>{setTasks(p=>{const u=p.map(t=>t.id===id?{...t,notes:n}:t);const task=u.find(t=>t.id===id);if(task)syncTask(task);save(u);return u})},[fbUrl]);
+  const addSub=useCallback((id,text)=>{if(!text.trim())return;setTasks(p=>{const u=p.map(t=>t.id===id?{...t,subtasks:[...(t.subtasks||[]),{id:uid(),text,done:false}]}:t);const task=u.find(t=>t.id===id);if(task)syncTask(task);save(u);return u})},[fbUrl]);
+  const togSub=useCallback((tid,sid)=>{setTasks(p=>{const u=p.map(t=>t.id===tid?{...t,subtasks:t.subtasks.map(s=>s.id===sid?{...s,done:!s.done}:s)}:t);const task=u.find(t=>t.id===tid);if(task)syncTask(task);save(u);return u})},[fbUrl]);
+  const delSub=useCallback((tid,sid)=>{setTasks(p=>{const u=p.map(t=>t.id===tid?{...t,subtasks:t.subtasks.filter(s=>s.id!==sid)}:t);const task=u.find(t=>t.id===tid);if(task)syncTask(task);save(u);return u})},[fbUrl]);
+  const delTask=useCallback(id=>{setTasks(p=>p.filter(t=>t.id!==id));if(fbUrl)fbDelCustom(id)},[fbUrl]);
+  const addTask=useCallback(task=>{const id=uid();const nt={...task,id,done:false,notes:"",subtasks:[]};setTasks(p=>[...p,nt]);setShowAdd(false);if(fbUrl){fbWriteCustom(id,nt);fbWrite(id,{done:false,notes:"",subtasks:[],owner:task.owner})}}, [fbUrl]);
+  const updateNames=useCallback(n=>{setOwnerNames(n);if(fbUrl)fbWriteNames(n);else localStorage.setItem("relo-names",JSON.stringify(n))},[fbUrl]);
+
+  const ownerLabel=(id)=>id==="parent1"?ownerNames.parent1:id==="parent2"?ownerNames.parent2:OWNER_MAP[id]?.label||id;
+  const stats=useMemo(()=>{const bp={};PHASES.forEach(p=>{const pt=tasks.filter(t=>t.phase===p.id);bp[p.id]={total:pt.length,done:pt.filter(t=>t.done).length}});return{bp,total:tasks.length,done:tasks.filter(t=>t.done).length}},[tasks]);
+  const filtered=useMemo(()=>{let r=tasks.filter(t=>t.phase===activePhase);if(filterCat!=="all")r=r.filter(t=>t.cat===filterCat);if(filterOwner!=="all")r=r.filter(t=>t.owner===filterOwner);if(search)r=r.filter(t=>t.text.toLowerCase().includes(search.toLowerCase()));return r},[tasks,activePhase,filterCat,filterOwner,search]);
+  const grouped=useMemo(()=>{const g={};filtered.forEach(t=>{(g[t.cat]=g[t.cat]||[]).push(t)});return g},[filtered]);
+
+  if(fbUrl===undefined)return<SetupScreen onConnect={u=>setFbUrl(u)}/>;
+  const phase=PHASES.find(p=>p.id===activePhase);const ps=stats.bp[activePhase];
+  if(!loaded)return<div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",fontFamily:"'DM Sans',sans-serif"}}><p>Loading...</p></div>;
+
+  return(
+    <div style={{fontFamily:"'DM Sans',sans-serif",background:"#FAF9F6",minHeight:"100vh",color:"#1a1a1a"}}>
+      {/* HEADER */}
+      <div style={{background:"linear-gradient(140deg,#1B2A4A 0%,#2D4373 60%,#3E5A99 100%)",padding:"24px 20px 18px",color:"#fff",position:"relative",overflow:"hidden"}}>
+        <div style={{position:"absolute",top:-20,right:-10,fontSize:100,opacity:0.05,pointerEvents:"none"}}>🗼</div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+          <div><h1 style={{fontFamily:"'Instrument Serif',serif",fontSize:24,fontWeight:400,margin:0,fontStyle:"italic"}}>Sunshine Coast → France</h1>
+          <p style={{margin:"3px 0 0",opacity:0.6,fontSize:12}}>Family Relocation · July 2027 – July 2028</p></div>
+          <div style={{display:"flex",gap:6}}>
+            <button onClick={()=>setEditNames(true)} style={{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:8,padding:"6px 10px",color:"#fff",fontSize:11,cursor:"pointer"}}>✏️ Names</button>
+            <button onClick={()=>setShowSettings(true)} style={{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:8,padding:"6px 10px",color:"#fff",fontSize:11,cursor:"pointer"}}>⚙️</button>
+          </div>
+        </div>
+        <div style={{background:"rgba(255,255,255,0.1)",borderRadius:10,padding:"10px 14px",marginTop:14,display:"flex",alignItems:"center",gap:12}}>
+          <div style={{flex:1}}>
+            <div style={{display:"flex",justifyContent:"space-between",fontSize:11,marginBottom:4,opacity:0.7}}><span>Overall {fbUrl?"· 🟢 Synced":"· Offline"}</span><span>{stats.done}/{stats.total}</span></div>
+            <div style={{height:5,background:"rgba(255,255,255,0.12)",borderRadius:3}}><div style={{height:5,background:"linear-gradient(90deg,#64FFDA,#80CBC4)",borderRadius:3,width:`${stats.total?stats.done/stats.total*100:0}%`,transition:"width .5s"}}/></div>
+          </div>
+          <div style={{fontSize:20,fontWeight:700,fontFamily:"'Instrument Serif',serif"}}>{stats.total?Math.round(stats.done/stats.total*100):0}%</div>
+        </div>
+      </div>
+
+      {/* Settings */}
+      {showSettings&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.4)",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center",padding:20}} onClick={()=>setShowSettings(false)}>
+        <div onClick={e=>e.stopPropagation()} style={{background:"#fff",borderRadius:14,padding:24,width:"100%",maxWidth:340}}>
+          <h3 style={{margin:"0 0 16px",fontFamily:"'Instrument Serif',serif",fontSize:20}}>Settings</h3>
+          <p style={{fontSize:12,color:"#888",margin:"0 0 8px"}}>Sync: {fbUrl?"🟢 Connected":"Offline"}</p>
+          {fbUrl&&<p style={{fontSize:10,color:"#aaa",wordBreak:"break-all",margin:"0 0 16px"}}>{fbUrl}</p>}
+          <button onClick={()=>{localStorage.removeItem("relo-fb-url");window.location.reload()}} style={{width:"100%",padding:10,background:"#FFEBEE",color:"#C62828",border:"none",borderRadius:8,fontSize:12,cursor:"pointer",fontWeight:600}}>{fbUrl?"Disconnect & Reconfigure":"Set Up Sync"}</button>
+          <button onClick={()=>setShowSettings(false)} style={{width:"100%",padding:10,background:"none",border:"1px solid #ddd",borderRadius:8,fontSize:12,cursor:"pointer",marginTop:8,color:"#888"}}>Close</button>
+        </div>
+      </div>}
+
+      {/* Names */}
+      {editNames&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.4)",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center",padding:20}} onClick={()=>setEditNames(false)}>
+        <div onClick={e=>e.stopPropagation()} style={{background:"#fff",borderRadius:14,padding:24,width:"100%",maxWidth:340}}>
+          <h3 style={{margin:"0 0 16px",fontFamily:"'Instrument Serif',serif",fontSize:20}}>Set Your Names</h3>
+          {["parent1","parent2"].map(k=><div key={k} style={{marginBottom:12}}>
+            <label style={{fontSize:10,color:"#999",fontWeight:600,textTransform:"uppercase",letterSpacing:1}}>{k==="parent1"?"Parent 1":"Parent 2"}</label>
+            <input value={ownerNames[k]} onChange={e=>updateNames({...ownerNames,[k]:e.target.value})} style={{width:"100%",padding:"8px 12px",border:"1px solid #ddd",borderRadius:8,fontSize:14,marginTop:4,boxSizing:"border-box",fontFamily:"'DM Sans',sans-serif"}}/>
+          </div>)}
+          <button onClick={()=>setEditNames(false)} style={{width:"100%",padding:12,background:"#1B2A4A",color:"#fff",border:"none",borderRadius:8,fontSize:14,fontWeight:600,cursor:"pointer",marginTop:4}}>Done</button>
+        </div>
+      </div>}
+
+      {/* Tabs */}
+      <div style={{display:"flex",background:"#fff",borderBottom:"1px solid #eae7df"}}>
+        {["phases","overview"].map(v=><button key={v} onClick={()=>setView(v)} style={{flex:1,padding:"11px 0",border:"none",background:"none",cursor:"pointer",fontSize:13,fontWeight:view===v?700:400,color:view===v?"#1B2A4A":"#999",borderBottom:view===v?"2px solid #1B2A4A":"2px solid transparent",fontFamily:"'DM Sans',sans-serif",textTransform:"capitalize"}}>{v}</button>)}
+      </div>
+
+      {view==="overview"?(
+        <div className="overview-inner">
+          <h3 style={{fontFamily:"'Instrument Serif',serif",fontSize:18,margin:"0 0 10px",color:"#1B2A4A"}}>Timeline</h3>
+          {PHASES.map(p=>{const s=stats.bp[p.id];const pct=s.total?Math.round(s.done/s.total*100):0;return(
+            <button key={p.id} onClick={()=>{setActivePhase(p.id);setView("phases")}} style={{width:"100%",background:"#fff",border:"1px solid #eae7df",borderLeft:`4px solid ${p.color}`,borderRadius:10,padding:"12px 14px",marginBottom:8,cursor:"pointer",display:"flex",alignItems:"center",gap:12,textAlign:"left",fontFamily:"'DM Sans',sans-serif"}}>
+              <span style={{fontSize:22}}>{p.icon}</span>
+              <div style={{flex:1}}><div style={{fontWeight:700,fontSize:13}}>{p.label}</div><div style={{fontSize:10,color:"#999"}}>{p.subtitle}</div>
+                <div style={{height:4,background:"#f0ede6",borderRadius:2,marginTop:6}}><div style={{height:4,background:p.color,borderRadius:2,width:`${pct}%`}}/></div></div>
+              <div style={{textAlign:"right"}}><div style={{fontSize:18,fontWeight:700,color:p.color,fontFamily:"'Instrument Serif',serif"}}>{pct}%</div><div style={{fontSize:10,color:"#aaa"}}>{s.done}/{s.total}</div></div>
+            </button>)})}
+          <h3 style={{fontFamily:"'Instrument Serif',serif",fontSize:18,margin:"20px 0 10px",color:"#1B2A4A"}}>By Category</h3>
+          <div className="ov-grid-cat">
+            {CATEGORIES.map(c=>{const ct=tasks.filter(t=>t.cat===c.id);const cd=ct.filter(t=>t.done).length;const pct=ct.length?Math.round(cd/ct.length*100):0;return(
+              <div key={c.id} style={{background:"#fff",border:"1px solid #eae7df",borderRadius:8,padding:"10px 12px"}}>
+                <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:6}}><span style={{fontSize:14}}>{c.icon}</span><span style={{fontSize:11,fontWeight:600}}>{c.label}</span></div>
+                <div style={{height:3,background:"#f0ede6",borderRadius:2}}><div style={{height:3,background:c.color,borderRadius:2,width:`${pct}%`}}/></div>
+                <div style={{fontSize:10,color:"#aaa",marginTop:4}}>{cd}/{ct.length}</div></div>)})}
+          </div>
+          <h3 style={{fontFamily:"'Instrument Serif',serif",fontSize:18,margin:"20px 0 10px",color:"#1B2A4A"}}>By Owner</h3>
+          <div className="ov-grid-owner">
+            {OWNERS.map(o=>{const ot=tasks.filter(t=>t.owner===o.id);const od=ot.filter(t=>t.done).length;return(
+              <div key={o.id} style={{background:o.bg,border:`1px solid ${o.color}22`,borderRadius:8,padding:"10px 12px"}}>
+                <div style={{fontSize:12,fontWeight:600,color:o.color}}>{ownerLabel(o.id)}</div>
+                <div style={{fontSize:20,fontWeight:700,fontFamily:"'Instrument Serif',serif",color:o.color}}>{od}<span style={{fontSize:12,fontWeight:400}}>/{ot.length}</span></div></div>)})}
+          </div>
+        </div>
+      ):(
+        <div className="app-body">
+          {/* Sidebar – desktop only */}
+          <div className="sidebar">
+            {PHASES.map(p=>{const s=stats.bp[p.id];const pct=s.total?Math.round(s.done/s.total*100):0;const a=p.id===activePhase;return(
+              <button key={p.id} onClick={()=>setActivePhase(p.id)} style={{width:"100%",display:"flex",alignItems:"center",gap:8,padding:"9px 10px",borderRadius:10,border:"none",background:a?`${p.color}12`:"none",cursor:"pointer",textAlign:"left",fontFamily:"'DM Sans',sans-serif",marginBottom:2}}>
+                <span style={{fontSize:18,flexShrink:0}}>{p.icon}</span>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:12,fontWeight:a?700:400,color:a?p.color:"#444",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.label}</div>
+                  <div style={{height:3,background:"#f0ede6",borderRadius:2,marginTop:3}}><div style={{height:3,background:pct===100?"#43A047":p.color,borderRadius:2,width:`${pct}%`,transition:"width .5s"}}/></div>
+                </div>
+                <span style={{fontSize:11,fontWeight:700,color:a?p.color:"#aaa",flexShrink:0}}>{pct}%</span>
+              </button>)})}
+          </div>
+
+          {/* Main column */}
+          <div className="main-col">
+            {/* Phase pills – mobile only */}
+            <div className="phase-pills">
+              {PHASES.map(p=>{const s=stats.bp[p.id];const pct=s.total?Math.round(s.done/s.total*100):0;const a=p.id===activePhase;return(
+                <button key={p.id} onClick={()=>setActivePhase(p.id)} style={{flexShrink:0,padding:"6px 12px",borderRadius:18,border:a?`2px solid ${p.color}`:"1px solid #e8e5dc",background:a?`${p.color}10`:"#fafaf7",cursor:"pointer",display:"flex",alignItems:"center",gap:5,fontFamily:"'DM Sans',sans-serif",fontSize:11,fontWeight:a?700:400,color:a?p.color:"#777"}}>
+                  <span>{p.icon}</span><span>{p.label}</span>
+                  <span style={{background:pct===100?"#43A047":p.color,color:"#fff",borderRadius:8,padding:"0 5px",fontSize:9,fontWeight:700}}>{pct}%</span>
+                </button>)})}
+            </div>
+
+            {/* Phase header */}
+            <div style={{padding:"14px 16px 10px",borderBottom:"1px solid #eae7df"}}>
+              <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+                <span style={{fontSize:26}}>{phase.icon}</span>
+                <div><h2 style={{fontFamily:"'Instrument Serif',serif",fontSize:20,margin:0,color:phase.color,fontStyle:"italic"}}>{phase.label}</h2>
+                <p style={{fontSize:11,color:"#999",margin:0}}>{phase.subtitle} · {ps.done}/{ps.total} done</p></div>
+              </div>
+              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                <input placeholder="Search..." value={search} onChange={e=>setSearch(e.target.value)} style={{flex:"1 1 100px",padding:"7px 10px",border:"1px solid #ddd",borderRadius:8,fontSize:12,fontFamily:"'DM Sans',sans-serif",outline:"none"}}/>
+                <select value={filterCat} onChange={e=>setFilterCat(e.target.value)} style={{padding:"7px 6px",border:"1px solid #ddd",borderRadius:8,fontSize:11,fontFamily:"'DM Sans',sans-serif",cursor:"pointer"}}><option value="all">All Categories</option>{CATEGORIES.map(c=><option key={c.id} value={c.id}>{c.icon} {c.label}</option>)}</select>
+                <select value={filterOwner} onChange={e=>setFilterOwner(e.target.value)} style={{padding:"7px 6px",border:"1px solid #ddd",borderRadius:8,fontSize:11,fontFamily:"'DM Sans',sans-serif",cursor:"pointer"}}><option value="all">All Owners</option>{OWNERS.map(o=><option key={o.id} value={o.id}>{ownerLabel(o.id)}</option>)}</select>
+              </div>
+            </div>
+
+            {/* Tasks */}
+            <div style={{padding:"6px 14px 80px"}}>
+              {Object.keys(grouped).length===0&&<div style={{textAlign:"center",padding:40,color:"#bbb"}}><p style={{fontSize:28}}>✨</p><p>No matching tasks</p></div>}
+              {CATEGORIES.filter(c=>grouped[c.id]).map(cat=>(
+                <div key={cat.id} style={{marginTop:14}}>
+                  <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:6}}>
+                    <span style={{fontSize:15}}>{cat.icon}</span>
+                    <h3 style={{fontSize:13,fontWeight:700,color:cat.color,margin:0}}>{cat.label}</h3>
+                    <span style={{fontSize:9,color:"#aaa",background:"#f5f3ee",padding:"1px 7px",borderRadius:8}}>{grouped[cat.id].filter(t=>t.done).length}/{grouped[cat.id].length}</span>
+                  </div>
+                  {grouped[cat.id].map(task=>{
+                    const isExp=expanded===task.id;const ow=OWNER_MAP[task.owner];
+                    const subDone=(task.subtasks||[]).filter(s=>s.done).length;const subTotal=(task.subtasks||[]).length;
+                    return(
+                      <div key={task.id} style={{background:task.done?"#f9f9f6":"#fff",border:"1px solid #eae7df",borderRadius:10,marginBottom:6,borderLeft:`3px solid ${PRIORITY_CONFIG[task.priority].color}`,opacity:task.done?0.5:1,transition:"all .2s"}}>
+                        <div style={{display:"flex",alignItems:"flex-start",gap:8,padding:"10px 10px 8px",cursor:"pointer"}} onClick={()=>toggle(task.id)}>
+                          <div style={{width:20,height:20,borderRadius:5,flexShrink:0,marginTop:1,border:task.done?"none":"2px solid #ccc",background:task.done?"#43A047":"transparent",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                            {task.done&&<span style={{color:"#fff",fontSize:12,fontWeight:700}}>✓</span>}
+                          </div>
+                          <div style={{flex:1,minWidth:0}}>
+                            <p style={{margin:0,fontSize:13,lineHeight:1.4,textDecoration:task.done?"line-through":"none",color:task.done?"#999":"#333"}}>{task.text}</p>
+                            <div style={{display:"flex",gap:5,marginTop:5,flexWrap:"wrap",alignItems:"center"}}>
+                              <span style={{fontSize:9,fontWeight:600,padding:"1px 6px",borderRadius:4,color:PRIORITY_CONFIG[task.priority].color,background:PRIORITY_CONFIG[task.priority].bg}}>{PRIORITY_CONFIG[task.priority].label}</span>
+                              <span style={{fontSize:9,fontWeight:600,padding:"1px 6px",borderRadius:4,color:ow?.color,background:ow?.bg}}>{ownerLabel(task.owner)}</span>
+                              {subTotal>0&&<span style={{fontSize:9,color:"#999"}}>☑ {subDone}/{subTotal}</span>}
+                              {task.notes&&<span style={{fontSize:9,color:"#999"}}>📝</span>}
+                            </div>
+                          </div>
+                          <button onClick={e=>{e.stopPropagation();setExpanded(isExp?null:task.id)}} style={{background:"none",border:"none",cursor:"pointer",fontSize:14,color:"#bbb",padding:"0 2px",flexShrink:0}}>{isExp?"▲":"▼"}</button>
+                        </div>
+                        {isExp&&(
+                          <div style={{padding:"0 12px 12px",borderTop:"1px solid #f0ede6"}} onClick={e=>e.stopPropagation()}>
+                            <div style={{marginTop:10,marginBottom:10}}>
+                              <label style={{fontSize:10,fontWeight:600,color:"#999",textTransform:"uppercase",letterSpacing:.8}}>Owner</label>
+                              <div style={{display:"flex",gap:5,marginTop:4,flexWrap:"wrap"}}>
+                                {OWNERS.map(o=><button key={o.id} onClick={()=>setOwnerFn(task.id,o.id)} style={{padding:"4px 10px",borderRadius:14,fontSize:11,fontWeight:task.owner===o.id?700:400,border:task.owner===o.id?`2px solid ${o.color}`:"1px solid #ddd",background:task.owner===o.id?o.bg:"#fafaf7",color:task.owner===o.id?o.color:"#888",cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>{ownerLabel(o.id)}</button>)}
+                              </div>
+                            </div>
+                            <div style={{marginBottom:10}}>
+                              <label style={{fontSize:10,fontWeight:600,color:"#999",textTransform:"uppercase",letterSpacing:.8}}>Notes</label>
+                              <textarea value={task.notes||""} onChange={e=>setNote(task.id,e.target.value)} placeholder="Add a note..." rows={2} style={{width:"100%",padding:"8px 10px",border:"1px solid #e0ddd5",borderRadius:8,fontSize:12,fontFamily:"'DM Sans',sans-serif",resize:"vertical",marginTop:4,boxSizing:"border-box",outline:"none",background:"#FDFCF9"}}/>
+                            </div>
+                            <div>
+                              <label style={{fontSize:10,fontWeight:600,color:"#999",textTransform:"uppercase",letterSpacing:.8}}>Subtasks</label>
+                              {(task.subtasks||[]).map(sub=>(
+                                <div key={sub.id} style={{display:"flex",alignItems:"center",gap:7,padding:"5px 0",borderBottom:"1px solid #f5f3ee"}}>
+                                  <div onClick={()=>togSub(task.id,sub.id)} style={{width:16,height:16,borderRadius:4,border:sub.done?"none":"1.5px solid #ccc",background:sub.done?"#43A047":"transparent",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0}}>
+                                    {sub.done&&<span style={{color:"#fff",fontSize:10,fontWeight:700}}>✓</span>}
+                                  </div>
+                                  <span style={{flex:1,fontSize:12,color:sub.done?"#bbb":"#555",textDecoration:sub.done?"line-through":"none"}}>{sub.text}</span>
+                                  <button onClick={()=>delSub(task.id,sub.id)} style={{background:"none",border:"none",color:"#ccc",cursor:"pointer",fontSize:14,padding:0}}>×</button>
+                                </div>))}
+                              <SubInput onAdd={text=>addSub(task.id,text)}/>
+                            </div>
+                            {typeof task.id==="string"&&<button onClick={()=>{delTask(task.id);setExpanded(null)}} style={{marginTop:10,padding:"6px 12px",background:"#FFEBEE",color:"#C62828",border:"none",borderRadius:6,fontSize:11,cursor:"pointer",fontWeight:600}}>Delete Task</button>}
+                          </div>)}
+                      </div>)})}
+                </div>))}
+            </div>
+            {!showAdd&&<button onClick={()=>setShowAdd(true)} style={{position:"fixed",bottom:24,right:24,width:50,height:50,borderRadius:"50%",background:phase.color,color:"#fff",border:"none",fontSize:24,cursor:"pointer",boxShadow:"0 4px 16px rgba(0,0,0,.2)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:10}}>+</button>}
+            {showAdd&&<AddPanel phase={activePhase} phaseColor={phase.color} ownerLabel={ownerLabel} onAdd={addTask} onClose={()=>setShowAdd(false)}/>}
+          </div>
+        </div>)}
+    </div>);
+}
+
+function SubInput({onAdd}){const[t,setT]=useState("");return(
+  <div style={{display:"flex",gap:6,marginTop:6}}>
+    <input value={t} onChange={e=>setT(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"){onAdd(t);setT("")}}} placeholder="Add subtask..." style={{flex:1,padding:"6px 10px",border:"1px solid #e0ddd5",borderRadius:6,fontSize:12,fontFamily:"'DM Sans',sans-serif",outline:"none",background:"#FDFCF9"}}/>
+    <button onClick={()=>{onAdd(t);setT("")}} style={{padding:"6px 12px",background:"#1B2A4A",color:"#fff",border:"none",borderRadius:6,fontSize:11,cursor:"pointer",fontWeight:600}}>Add</button>
+  </div>)}
+
+function AddPanel({phase,phaseColor,ownerLabel,onAdd,onClose}){
+  const[text,setText]=useState("");const[cat,setCat]=useState("visa");const[priority,setPriority]=useState("medium");const[owner,setOwner]=useState("both");
+  return(
+    <div style={{position:"fixed",bottom:0,left:0,right:0,background:"#fff",borderTop:"1px solid #ddd",padding:"16px 18px 28px",boxShadow:"0 -4px 20px rgba(0,0,0,.1)",zIndex:20,maxWidth:540,margin:"0 auto"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}><h4 style={{margin:0,fontSize:15,fontWeight:700}}>Add Task</h4><button onClick={onClose} style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:"#999"}}>×</button></div>
+      <input autoFocus value={text} onChange={e=>setText(e.target.value)} onKeyDown={e=>e.key==="Enter"&&text.trim()&&onAdd({text,cat,phase,priority,owner})} placeholder="What needs to be done?" style={{width:"100%",padding:"10px 12px",border:"1px solid #ddd",borderRadius:8,fontSize:14,fontFamily:"'DM Sans',sans-serif",marginBottom:10,boxSizing:"border-box"}}/>
+      <div style={{display:"flex",gap:6,marginBottom:8,flexWrap:"wrap"}}>
+        <select value={cat} onChange={e=>setCat(e.target.value)} style={{flex:1,padding:7,border:"1px solid #ddd",borderRadius:8,fontSize:11,fontFamily:"'DM Sans',sans-serif"}}>{CATEGORIES.map(c=><option key={c.id} value={c.id}>{c.icon} {c.label}</option>)}</select>
+        <select value={priority} onChange={e=>setPriority(e.target.value)} style={{flex:1,padding:7,border:"1px solid #ddd",borderRadius:8,fontSize:11,fontFamily:"'DM Sans',sans-serif"}}>{Object.entries(PRIORITY_CONFIG).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}</select>
+      </div>
+      <div style={{display:"flex",gap:5,marginBottom:12,flexWrap:"wrap"}}>
+        {OWNERS.map(o=><button key={o.id} onClick={()=>setOwner(o.id)} style={{padding:"5px 12px",borderRadius:14,fontSize:11,fontWeight:owner===o.id?700:400,border:owner===o.id?`2px solid ${o.color}`:"1px solid #ddd",background:owner===o.id?o.bg:"#fafaf7",color:owner===o.id?o.color:"#888",cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>{ownerLabel(o.id)}</button>)}
+      </div>
+      <button onClick={()=>text.trim()&&onAdd({text,cat,phase,priority,owner})} style={{width:"100%",padding:12,background:phaseColor,color:"#fff",border:"none",borderRadius:8,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>Add Task</button>
+    </div>)}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
