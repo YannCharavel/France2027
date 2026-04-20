@@ -409,7 +409,6 @@ function App(){
                           <div style={{flex:1,minWidth:0}}>
                             <p style={{margin:0,fontSize:13,lineHeight:1.4,textDecoration:task.done?"line-through":"none",color:task.done?"#999":"#333"}}>{task.text}</p>
                             <div style={{display:"flex",gap:5,marginTop:5,flexWrap:"wrap",alignItems:"center"}}>
-                              <span style={{fontSize:9,fontWeight:600,padding:"1px 6px",borderRadius:4,color:PRIORITY_CONFIG[task.priority].color,background:PRIORITY_CONFIG[task.priority].bg}}>{PRIORITY_CONFIG[task.priority].label}</span>
                               <span style={{fontSize:9,fontWeight:600,padding:"1px 6px",borderRadius:4,color:ow?.color,background:ow?.bg}}>{ownerLabel(task.owner)}</span>
                               {subTotal>0&&<span style={{fontSize:9,color:"#999"}}>☑ {subDone}/{subTotal}</span>}
                               {task.notes&&<span style={{fontSize:9,color:"#999"}}>📝</span>}
